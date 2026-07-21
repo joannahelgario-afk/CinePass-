@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CinePass – Movie Ticket Booking Prototype</title>
+  <style>
+    /* --- CSS Reset & Base Styling --- */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: #0f172a; /* Dark cinematic background */
+      color: #f8fafc;
+      padding: 2rem 1rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 550px;
+      background: #1e293b;
+      padding: 2rem;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+
+    /* --- Header --- */
+    header {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    header h1 {
+      font-size: 1.8rem;
+      color: #f43f5e; /* Vibrant cinematic red/rose */
+      margin-bottom: 0.25rem;
+    }
+
+    header p {
+      color: #94a3b8;
+      font-size: 0.9rem;
+    }
+
+    /* --- Movie Selector --- */
+    .movie-selector {
+      margin-bottom: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #0f172a;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+    }
+
+    .movie-selector label {
+      color: #94a3b8;
+      font-size: 0.9rem;
+    }
+
+    .movie-selector select {
+      background: #1e293b;
+      color: #fff;
+      border: 1px solid #475569;
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    /* --- Legend (Seat Types) --- */
+    .legend {
+      display: flex;
+      justify-content: space-around;
+      background: rgba(15, 23, 42, 0.5);
+      padding: 0.75rem;
+      border-radius: 8px;
+      margin-bottom: 2rem;
+      font-size: 0.8rem;
+      color: #cbd5e1;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .seat {
+      width: 22px;
+      height: 20px;
+      background-color: #475569; /* Available */
+      border-top-left-radius: 6px;
+      border-top-right-radius: 6px;
+      transition: background-color 0.2s, transform 0.1s;
+    }
+
+    .seat.selected {
+      background-color: #f43f5e; /* Selected */
+    }
+
+    .seat.occupied {
+      background-color: #334155; /* Occupied/Unavailable */
+      cursor: not-allowed !important;
+      opacity: 0.3;
+    }
+
+    /* --- Theater Screen & Seating --- */
+    .theater-container {
+      perspective: 400px;
+      margin-bottom: 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .screen {
+      background-color: #e2e8f0;
+      height: 10px;
+      width: 80%;
+      margin: 10px 0 30px 0;
+      transform: rotateX(-10deg);
+      box-shadow: 0 3px 15px rgba(255, 255, 255, 0.5);
+      border-radius: 50%;
+    }
+
+    .screen-label {
+      font-size: 0.7rem;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      margin-top: -20px;
+      margin-bottom: 25px;
+    }
+
+    /* Seating Grid (6 rows x 8 columns) */
+    .seating-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .seating-grid .seat {
+      cursor: pointer;
+    }
+
+    .seating-grid .seat:hover:not(.occupied) {
+      transform: scale(1.15);
+      background-color: #fda4af;
+    }
+
+    /* --- Checkout Summary --- */
+    .summary-panel {
+      background: #0f172a;
+      padding: 1.25rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      font-size: 0.95rem;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+
+    .summary-row:last-of-type {
+      margin-bottom: 0;
+      padding-top: 0.5rem;
+      border-top: 1px dashed #334155;
+      font-weight: bold;
+    }
+
+    .summary-row span {
+      color: #cbd5e1;
+    }
+
+    .summary-row strong {
+      color: #f43f5e;
+    }
+
+    /* --- Action Button --- */
+    .btn-book {
+      width: 100%;
+      background: #f43f5e;
+      color: white;
+      border: none;
+      padding: 1rem;
+      font-size: 1rem;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-book:hover {
+      background: #e11d48;
+    }
+
+    .btn-book:disabled {
+      background: #334155;
+      color: #64748b;
+      cursor: not-allowed;
+    }
+
+    /* --- Custom Success Modal Styles --- */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.85); /* Dark semi-transparent background */
+      backdrop-filter: blur(4px); /* Modern blur effect */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      z-index: 1000;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-content {
+      background: #1e293b;
+      border: 2px solid #334155;
+      width: 90%;
+      max-width: 400px;
+      padding: 2.5rem 2rem;
+      border-radius: 16px;
+      text-align: center;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+      transform: translateY(20px);
+      transition: transform 0.3s ease;
+    }
+
+    .modal-overlay.active .modal-content {
+      transform: translateY(0);
+    }
+
+    /* Success Checkmark Icon Graphic */
+    .success-icon {
+      width: 60px;
+      height: 60px;
+      background: #10b981; /* Green success color */
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      font-weight: bold;
+      margin: 0 auto 1.5rem auto;
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+    }
+
+    .modal-content h2 {
+      font-size: 1.5rem;
+      color: #f8fafc;
+      margin-bottom: 0.5rem;
+    }
+
+    .modal-content p {
+      color: #94a3b8;
+      font-size: 0.95rem;
+      margin-bottom: 1.5rem;
+    }
+
+    /* Styled Ticket receipt inside modal */
+    .ticket-details {
+      background: #0f172a;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      text-align: left;
+      border: 1px dashed #475569;
+    }
+
+    .ticket-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .ticket-row:last-child {
+      margin-bottom: 0;
+      font-weight: bold;
+      color: #10b981;
+    }
+
+    .ticket-row span {
+      color: #94a3b8;
+    }
+
+    .ticket-row strong {
+      color: #f8fafc;
+    }
+
+    .btn-close {
+      width: 100%;
+      background: #475569;
+      color: white;
+      border: none;
+      padding: 0.75rem;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-close:hover {
+      background: #334155;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <h1>CinePass</h1>
+      <p>Interactive Seat Booking Prototype</p>
+    </header>
+
+    <!-- Movie Selector -->
+    <div class="movie-selector">
+      <label for="movie">Select Movie:</label>
+      <select id="movie">
+        <option value="320.00">Interstellar (₱320.00)</option>
+        <option value="275.00">Dune: Part Two (₱275.00)</option>
+        <option value="230.00">Toy Story 5 (₱230.00)</option>
+        <option value="450.00">Moana (₱450.00)</option>
+      </select>
+    </div>
+
+    <!-- Seat Legend -->
+    <div class="legend">
+      <div class="legend-item">
+        <div class="seat"></div>
+        <span>Available</span>
+      </div>
+      <div class="legend-item">
+        <div class="seat selected"></div>
+        <span>Selected</span>
+      </div>
+      <div class="legend-item">
+        <div class="seat occupied"></div>
+        <span>Occupied</span>
+      </div>
+    </div>
+
+    <!-- Theater Layout -->
+    <div class="theater-container">
+      <div class="screen"></div>
+      <div class="screen-label">Screen</div>
+      
+      <!-- Seating Grid -->
+      <div id="seating-grid" class="seating-grid"></div>
+    </div>
+
+    <!-- Summary Panel -->
+    <div class="summary-panel">
+      <div class="summary-row">
+        <span>Selected Seats:</span>
+        <span id="selected-seats-list">None</span>
+      </div>
+      <div class="summary-row">
+        <span>Ticket Price:</span>
+        <span id="base-price">₱0.00</span>
+      </div>
+      <div class="summary-row">
+        <span>Total Price:</span>
+        <strong id="total-price">₱0.00</strong>
+      </div>
+    </div>
+
+    <!-- Book Button -->
+    <button id="book-btn" class="btn-book" disabled>Confirm Booking</button>
+  </div>
+
+  <!-- --- Custom Success Pop-up Modal --- -->
+  <div id="success-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="success-icon">✓</div>
+      <h2>Booking Successful!</h2>
+      <p>Your seats are confirmed. Show this receipt at the counter.</p>
+      
+      <div class="ticket-details">
+        <div class="ticket-row">
+          <span>Movie:</span>
+          <strong id="modal-movie-title">Movie Name</strong>
+        </div>
+        <div class="ticket-row">
+          <span>Seats:</span>
+          <strong id="modal-seats">A1, A2</strong>
+        </div>
+        <div class="ticket-row">
+          <span>Total Paid:</span>
+          <strong id="modal-total" style="color: #10b981;">₱0.00</strong>
+        </div>
+      </div>
+
+      <button id="close-modal-btn" class="btn-close">Done</button>
+    </div>
+  </div>
+
+  <!-- --- JavaScript Logic --- -->
+  <script>
+    const seatingGrid = document.getElementById('seating-grid');
+    const movieSelect = document.getElementById('movie');
+    const selectedSeatsList = document.getElementById('selected-seats-list');
+    const basePriceEl = document.getElementById('base-price');
+    const totalPriceEl = document.getElementById('total-price');
+    const bookBtn = document.getElementById('book-btn');
+
+    const successModal = document.getElementById('success-modal');
+    const modalMovieTitle = document.getElementById('modal-movie-title');
+    const modalSeats = document.getElementById('modal-seats');
+    const modalTotal = document.getElementById('modal-total');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+
+    const totalRows = 6;
+    const seatsPerRow = 8;
+    
+    // Track occupied seats in an active array state
+    let occupiedSeats = ['A3', 'A4', 'C5', 'C6', 'E1', 'E2', 'F7', 'F8'];
+    let selectedSeats = [];
+
+    // 1. Generate Seating Layout Programmatically
+    function generateSeats() {
+      seatingGrid.innerHTML = ''; // Clear previous grid items
+      
+      for (let r = 0; r < totalRows; r++) {
+        const rowLabel = String.fromCharCode(65 + r); // Row Letters: A, B, C...
+        
+        for (let s = 1; s <= seatsPerRow; s++) {
+          const seatId = `${rowLabel}${s}`;
+          const seatElement = document.createElement('div');
+          seatElement.classList.add('seat');
+          seatElement.dataset.seatId = seatId;
+
+          // If the seat is occupied, mark it styled as occupied
+          if (occupiedSeats.includes(seatId)) {
+            seatElement.classList.add('occupied');
+          } else {
+            // Apply click listener
+            seatElement.addEventListener('click', () => toggleSeat(seatElement, seatId));
+          }
+
+          seatingGrid.appendChild(seatElement);
+        }
+      }
+    }
+
+    // 2. Handle Clicking on Seats
+    function toggleSeat(element, seatId) {
+      // Prevent selecting already occupied seats
+      if (element.classList.contains('occupied')) return;
+
+      if (selectedSeats.includes(seatId)) {
+        selectedSeats = selectedSeats.filter(id => id !== seatId);
+        element.classList.remove('selected');
+      } else {
+        selectedSeats.push(seatId);
+        element.classList.add('selected');
+      }
+      
+      updateSummary();
+    }
+
+    // 3. Recalculate and Update calculations (Using Pesos ₱)
+    function updateSummary() {
+      const ticketPrice = parseFloat(movieSelect.value);
+      const totalAmount = selectedSeats.length * ticketPrice;
+
+      basePriceEl.textContent = `₱${ticketPrice.toFixed(2)}`;
+      totalPriceEl.textContent = `₱${totalAmount.toFixed(2)}`;
+      
+      if (selectedSeats.length > 0) {
+        selectedSeatsList.textContent = selectedSeats.join(', ');
+        bookBtn.disabled = false;
+      } else {
+        selectedSeatsList.textContent = 'None';
+        bookBtn.disabled = true;
+      }
+    }
+
+    // 4. Update when movie changes
+    movieSelect.addEventListener('change', updateSummary);
+
+    // 5. Handle "Confirm Booking"
+    bookBtn.addEventListener('click', () => {
+      // Safely split text by " (₱" to isolate the title
+      const selectedMovieText = movieSelect.options[movieSelect.selectedIndex].text.split(' (₱')[0];
+      
+      // Update Modal Values
+      modalMovieTitle.textContent = selectedMovieText;
+      modalSeats.textContent = selectedSeats.join(', ');
+      modalTotal.textContent = totalPriceEl.textContent;
+
+      // Show Custom Success Modal
+      successModal.classList.add('active');
+
+      // Add selected seats to occupied seats tracking array
+      occupiedSeats = [...occupiedSeats, ...selectedSeats];
+
+      // Clear current selection
+      selectedSeats = [];
+      updateSummary();
+
+      // Redraw grid to reflect new occupied states correctly
+      generateSeats();
+    });
+
+    // 6. Close Modal
+    closeModalBtn.addEventListener('click', () => {
+      successModal.classList.remove('active');
+    });
+
+    // Initial load
+    generateSeats();
+    updateSummary();
+  </script>
+</body>
+</html>
